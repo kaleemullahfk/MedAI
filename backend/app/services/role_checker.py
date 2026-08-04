@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 
 from app.models.user import User
 from app.services.current_user import get_current_user
@@ -9,7 +9,7 @@ def require_role(allowed_roles: list):
 
         if current_user.role not in allowed_roles:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to access this resource."
             )
 

@@ -1,8 +1,11 @@
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.database.connection import get_db
 from app.models.user import User
 from app.models.patient_profile import PatientProfile
@@ -24,29 +27,42 @@ router = APIRouter(
 )
 
 
+def _as_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Return *dt* as a timezone-aware UTC datetime.
+
+    The ``reset_token_expires`` column is a naive ``DateTime``: aware values
+    written to SQLite/Postgres have their tzinfo stripped. Normalize on read
+    before comparing against ``datetime.now(timezone.utc)``.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    clean_email = user_in.email.strip().lower()
+    # Schema already restricts role to patient|doctor (Literal). Defensive check
+    # keeps the guarantee even if the schema is loosened later.
+    if user_in.role not in ("patient", "doctor"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Public registration only supports 'patient' or 'doctor' roles."
+        )
 
-    existing_user = db.query(User).filter(User.email == clean_email).first()
+    existing_user = db.query(User).filter(User.email == user_in.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists."
         )
 
-    role = user_in.role.lower().strip()
-    if role not in ["patient", "doctor", "admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be 'patient', 'doctor', or 'admin'."
-        )
-
     new_user = User(
-        full_name=user_in.full_name.strip(),
-        email=clean_email,
+        full_name=user_in.full_name,
+        email=user_in.email,
         password=hash_password(user_in.password),
-        role=role,
+        role=user_in.role,
         is_active=True
     )
 
@@ -55,7 +71,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     # Initialize default profile shell for patients and doctors
-    if role == "patient":
+    if user_in.role == "patient":
         patient_shell = PatientProfile(
             user_id=new_user.id,
             age=30,
@@ -67,7 +83,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         db.add(patient_shell)
         db.commit()
 
-    elif role == "doctor":
+    elif user_in.role == "doctor":
         doctor_shell = DoctorProfile(
             user_id=new_user.id,
             specialization="General Physician",
@@ -77,7 +93,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             consultation_fee=50,
             available_days="Monday - Friday",
             available_time="09:00 AM - 05:00 PM",
-            is_verified=True
+            is_verified=False
         )
         db.add(doctor_shell)
         db.commit()
@@ -87,9 +103,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    clean_email = user_credentials.email.strip().lower()
-
-    db_user = db.query(User).filter(User.email == clean_email).first()
+    db_user = db.query(User).filter(User.email == user_credentials.email).first()
 
     if not db_user or not verify_password(user_credentials.password, db_user.password):
         raise HTTPException(
@@ -125,9 +139,11 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == req.email.strip().lower()).first()
+    user = db.query(User).filter(User.email == req.email).first()
+
+    # Avoid user enumeration: respond identically whether or not the account
+    # exists. The reset token is never returned in this response body.
     if not user:
-        # Avoid user enumeration - return success message regardless
         return {"message": "If that email is registered, a password reset link has been generated."}
 
     reset_token = secrets.token_urlsafe(32)
@@ -136,9 +152,30 @@ def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
     db.commit()
 
+    return {"message": "If that email is registered, a password reset link has been generated."}
+
+
+@router.get("/dev/reset-link/{email}")
+def dev_reset_link(email: str, db: Session = Depends(get_db)):
+    """Development-only helper: reveals the reset token so the flow can be
+    tested without an email server. Returns 404 outside development."""
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found."
+        )
+
+    user = db.query(User).filter(User.email == email.strip().lower()).first()
+    if not user or not user.reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active reset token for this email."
+        )
+
     return {
-        "message": "Password reset token generated successfully.",
-        "reset_token": reset_token  # Returned for easy testing / dev flow
+        "email": user.email,
+        "reset_token": user.reset_token,
+        "expires_at": _as_utc(user.reset_token_expires).isoformat()
     }
 
 
@@ -146,7 +183,8 @@ def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
 def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.reset_token == req.token).first()
 
-    if not user or not user.reset_token_expires or user.reset_token_expires.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+    expires = _as_utc(user.reset_token_expires) if user else None
+    if not user or expires is None or expires < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token."
