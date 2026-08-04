@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+
+# User uploads (kept out of the source tree)
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Databases
+*.db
+*.sqlite3
+
+# Alembic compiled caches
+alembic/versions/*.pyc
+
+# Test / tooling caches
+.pytest_cache/
