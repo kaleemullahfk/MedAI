@@ -5,6 +5,9 @@ from app.database.connection import get_db
 
 from app.models.user import User
 from app.models.appointment import Appointment
+from app.models.medical_record import MedicalReport
+from app.models.prescription import Prescription
+from app.models.chat_history import ChatHistory
 
 from app.services.role_checker import require_role
 
@@ -23,11 +26,23 @@ def patient_dashboard(
         Appointment.patient_id == current_user.id
     ).count()
 
+    reports = db.query(MedicalReport).filter(
+        MedicalReport.patient_id == current_user.id
+    ).count()
+
+    prescriptions = db.query(Prescription).filter(
+        Prescription.patient_id == current_user.id
+    ).count()
+
+    chat_history = db.query(ChatHistory).filter(
+        ChatHistory.user_id == current_user.id
+    ).count()
+
     return {
         "appointments": appointments,
-        "reports": 0,
-        "prescriptions": 0,
-        "chat_history": 0,
+        "reports": reports,
+        "prescriptions": prescriptions,
+        "chat_history": chat_history,
     }
 
 
@@ -47,11 +62,28 @@ def doctor_dashboard(
         .count()
     )
 
+    # Reports authored for this doctor's patients.
+    patient_ids = (
+        db.query(Appointment.patient_id)
+        .filter(Appointment.doctor_id == current_user.id)
+        .distinct()
+        .subquery()
+    )
+    reports = (
+        db.query(MedicalReport)
+        .filter(MedicalReport.patient_id.in_(patient_ids))
+        .count()
+    )
+
+    chats = db.query(ChatHistory).filter(
+        ChatHistory.user_id == current_user.id
+    ).count()
+
     return {
         "appointments": appointments,
         "patients": patients,
-        "reports": 0,
-        "chats": 0,
+        "reports": reports,
+        "chats": chats,
     }
 
 

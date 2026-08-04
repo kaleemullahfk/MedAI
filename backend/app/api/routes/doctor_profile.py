@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -26,7 +27,12 @@ def list_doctors(
     hospital: Optional[str] = Query(None, description="Filter by hospital"),
     db: Session = Depends(get_db)
 ):
-    query = db.query(DoctorProfile).join(User).options(joinedload(DoctorProfile.user)).filter(User.is_active == True)
+    query = (
+        db.query(DoctorProfile)
+        .join(User)
+        .options(joinedload(DoctorProfile.user))
+        .filter(User.is_active == True)  # noqa: E712
+    )
 
     if specialization:
         query = query.filter(DoctorProfile.specialization.ilike(f"%{specialization}%"))
@@ -67,7 +73,6 @@ def create_doctor_profile(
         consultation_fee=profile.consultation_fee,
         available_days=profile.available_days,
         available_time=profile.available_time,
-        is_verified=True
     )
 
     db.add(doctor)
@@ -82,23 +87,19 @@ def get_my_doctor_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["doctor"]))
 ):
-    profile = db.query(DoctorProfile).options(joinedload(DoctorProfile.user)).filter(DoctorProfile.user_id == current_user.id).first()
+    # Read-only: never fabricate a profile as a GET side effect.
+    profile = (
+        db.query(DoctorProfile)
+        .options(joinedload(DoctorProfile.user))
+        .filter(DoctorProfile.user_id == current_user.id)
+        .first()
+    )
 
     if not profile:
-        profile = DoctorProfile(
-            user_id=current_user.id,
-            specialization="General Physician",
-            qualification="MBBS",
-            experience=5,
-            hospital="City Hospital",
-            consultation_fee=50,
-            available_days="Monday - Friday",
-            available_time="09:00 AM - 05:00 PM",
-            is_verified=True
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doctor profile not found. Create one with POST /doctor-profile/.",
         )
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
 
     return profile
 
@@ -115,9 +116,10 @@ def update_doctor_profile(
         profile = DoctorProfile(user_id=current_user.id)
         db.add(profile)
 
-    update_data = profile_update.dict(exclude_unset=True)
-    for field, val in update_data.items():
-        setattr(profile, field, val)
+    update_data = profile_update.model_dump(exclude_unset=True)
+    if update_data:
+        for field, val in update_data.items():
+            setattr(profile, field, val)
 
     db.commit()
     db.refresh(profile)
@@ -130,11 +132,16 @@ def get_doctor_profile_by_id(
     doctor_id: int,
     db: Session = Depends(get_db)
 ):
-    profile = db.query(DoctorProfile).options(joinedload(DoctorProfile.user)).filter(
-        (DoctorProfile.id == doctor_id) | (DoctorProfile.user_id == doctor_id)
-    ).first()
+    # Unambiguous: resolve by the profile's own primary key only. (Previously
+    # matched id OR user_id, which could return the wrong doctor.)
+    profile = (
+        db.query(DoctorProfile)
+        .options(joinedload(DoctorProfile.user))
+        .filter(DoctorProfile.id == doctor_id)
+        .first()
+    )
 
     if not profile:
-        raise HTTPException(status_code=404, detail="Doctor profile not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor profile not found.")
 
     return profile

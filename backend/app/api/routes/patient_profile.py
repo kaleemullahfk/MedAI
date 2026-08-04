@@ -58,20 +58,14 @@ def get_my_patient_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Read-only: never fabricate a profile as a GET side effect.
     profile = db.query(PatientProfile).filter(PatientProfile.user_id == current_user.id).first()
 
     if not profile:
-        profile = PatientProfile(
-            user_id=current_user.id,
-            age=30,
-            gender="Not Specified",
-            phone="",
-            address="",
-            blood_group="Unknown"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient profile not found. Create one with POST /patient-profile/.",
         )
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
 
     return profile
 
@@ -88,9 +82,10 @@ def update_patient_profile(
         profile = PatientProfile(user_id=current_user.id)
         db.add(profile)
 
-    update_data = profile_update.dict(exclude_unset=True)
-    for field, val in update_data.items():
-        setattr(profile, field, val)
+    update_data = profile_update.model_dump(exclude_unset=True)
+    if update_data:
+        for field, val in update_data.items():
+            setattr(profile, field, val)
 
     db.commit()
     db.refresh(profile)

@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 
 
 class DiseaseRequest(BaseModel):
-    disease: str
+    disease: str = Field(min_length=1, max_length=4000)
 
 
 class DiseaseResponse(BaseModel):

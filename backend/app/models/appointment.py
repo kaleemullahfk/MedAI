@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, Index
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -24,3 +24,9 @@ class Appointment(Base):
     patient = relationship("User", foreign_keys=[patient_id])
 
     doctor = relationship("User", foreign_keys=[doctor_id])
+
+    # Indexes for the double-booking lookups and dashboard counts
+    __table_args__ = (
+        Index("ix_appointments_doctor_date", "doctor_id", "appointment_date"),
+        Index("ix_appointments_patient_date", "patient_id", "appointment_date"),
+    )

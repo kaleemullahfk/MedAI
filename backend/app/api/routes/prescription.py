@@ -1,19 +1,19 @@
 import os
-import shutil
-import json
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.database.connection import get_db
 from app.models.prescription import Prescription
 from app.models.user import User
-from app.schemas.prescription import PrescriptionCreate, PrescriptionUpdate, PrescriptionResponse
+from app.schemas.prescription import PrescriptionCreate, PrescriptionResponse
 from app.services.current_user import get_current_user
 from app.services.role_checker import require_role
 from app.services.pdf_service import extract_text_from_pdf
 from app.services.ocr_service import extract_text_from_image
-from app.services.groq_service import ask_groq
+from app.services.file_service import validate_and_save
+from app.services.groq_service import ask_groq_json, wrap_user_input, PROMPT_INJECTION_GUARD
 from app.prompts.prescription_prompt import SYSTEM_PROMPT
 
 router = APIRouter(
@@ -30,7 +30,7 @@ def create_prescription(
 ):
     patient = db.query(User).filter(User.id == prescription.patient_id, User.role == "patient").first()
     if not patient:
-        raise HTTPException(status_code=404, detail="Patient user not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient user not found.")
 
     new_prescription = Prescription(
         doctor_id=current_user.id,
@@ -94,7 +94,10 @@ def delete_prescription(
     ).first()
 
     if not prescription:
-        raise HTTPException(status_code=404, detail="Prescription not found or not owned by doctor.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Prescription not found or not owned by doctor.",
+        )
 
     db.delete(prescription)
     db.commit()
@@ -105,44 +108,43 @@ def delete_prescription(
 @router.post("/analyze-file")
 def analyze_prescription_file(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["patient"]))
 ):
-    upload_dir = "app/uploads/prescriptions"
-    os.makedirs(upload_dir, exist_ok=True)
-
-    safe_filename = f"{current_user.id}_{file.filename}"
-    file_path = os.path.join(upload_dir, safe_filename)
-
-    extension = os.path.splitext(file.filename)[1].lower()
-    if extension not in [".pdf", ".jpg", ".jpeg", ".png", ".jfif"]:
-        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, JPG, or PNG.")
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    file_path, stored_name = validate_and_save(file, "prescriptions")
+    extension = os.path.splitext(stored_name)[1].lower()
 
     try:
-        if extension == ".pdf":
-            extracted_text = extract_text_from_pdf(file_path)
-        else:
-            extracted_text = extract_text_from_image(file_path)
-    except Exception as e:
-        extracted_text = f"Text extraction summary for prescription file: {file.filename}"
+        text = (
+            extract_text_from_pdf(str(file_path))
+            if extension == ".pdf"
+            else extract_text_from_image(str(file_path))
+        )
+    except Exception:  # noqa: BLE001 - normalize extraction failures
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Could not extract text from the uploaded file. Please upload a clear, legible PDF or image.",
+        )
+
+    if not text or not text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No readable text was found in the uploaded file. Please upload a clear, legible PDF or image.",
+        )
 
     prompt = f"""
 {SYSTEM_PROMPT}
 
+{PROMPT_INJECTION_GUARD}
+
 Prescription Document Text:
-{extracted_text}
+{wrap_user_input(text.strip())}
 """
 
-    ai_response = ask_groq(prompt)
-
     try:
-        parsed_json = json.loads(ai_response)
-        return parsed_json
+        return ask_groq_json(prompt)
     except Exception:
-        return {
-            "analysis": ai_response,
-            "raw_text": extracted_text,
-            "filename": file.filename
-        }
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI service is unavailable. Please try again.",
+            headers={"X-MEDAI-CODE": "AI_UNAVAILABLE"},
+        )

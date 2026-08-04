@@ -1,10 +1,12 @@
 from datetime import date
-from typing import List, Optional
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.database.connection import get_db
 from app.models.appointment import Appointment
+from app.models.doctor_profile import DoctorProfile
 from app.models.user import User
 from app.schemas.appointment import (
     AppointmentCreate,
@@ -13,6 +15,7 @@ from app.schemas.appointment import (
 )
 from app.services.current_user import get_current_user
 from app.services.role_checker import require_role
+from app.services.schedule import slot_in_window
 
 router = APIRouter(
     prefix="/appointment",
@@ -33,11 +36,11 @@ def book_appointment(
             detail="Cannot book an appointment for a past date."
         )
 
-    # Validation 2: Ensure target user exists and is a doctor
+    # Validation 2: Ensure target user exists, is a doctor, and is active
     doctor = db.query(User).filter(
         User.id == appointment.doctor_id,
         User.role == "doctor",
-        User.is_active == True
+        User.is_active == True  # noqa: E712
     ).first()
 
     if not doctor:
@@ -46,7 +49,19 @@ def book_appointment(
             detail="Doctor not found or inactive."
         )
 
-    # Validation 3: Prevent doctor double booking at exact date and time slot
+    # Validation 3: Ensure the requested time falls within the doctor's
+    # availability window (e.g. "09:00 AM - 05:00 PM").
+    doctor_profile = db.query(DoctorProfile).filter(
+        DoctorProfile.user_id == doctor.id
+    ).first()
+
+    if doctor_profile and not slot_in_window(appointment.appointment_time, doctor_profile.available_time):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"The selected time is outside this doctor's availability ({doctor_profile.available_time})."
+        )
+
+    # Validation 4: Prevent doctor double booking at exact date and time slot
     existing_doctor_slot = db.query(Appointment).filter(
         Appointment.doctor_id == appointment.doctor_id,
         Appointment.appointment_date == appointment.appointment_date,
@@ -60,7 +75,7 @@ def book_appointment(
             detail="This time slot is already booked for the selected doctor. Please choose another time."
         )
 
-    # Validation 4: Prevent patient double booking at exact date and time slot
+    # Validation 5: Prevent patient double booking at exact date and time slot
     existing_patient_slot = db.query(Appointment).filter(
         Appointment.patient_id == current_user.id,
         Appointment.appointment_date == appointment.appointment_date,
@@ -78,7 +93,7 @@ def book_appointment(
         patient_id=current_user.id,
         doctor_id=appointment.doctor_id,
         appointment_date=appointment.appointment_date,
-        appointment_time=appointment.appointment_time.strip(),
+        appointment_time=appointment.appointment_time,
         reason=appointment.reason.strip(),
         status="Pending"
     )
@@ -133,16 +148,16 @@ def cancel_appointment(
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
 
     if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
 
     # Authorization Check
     if current_user.role == "patient" and appointment.patient_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this appointment.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to cancel this appointment.")
     if current_user.role == "doctor" and appointment.doctor_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this appointment.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to cancel this appointment.")
 
     if appointment.status in ["Completed", "Cancelled"]:
-        raise HTTPException(status_code=400, detail=f"Appointment is already {appointment.status.lower()}.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Appointment is already {appointment.status.lower()}.")
 
     appointment.status = "Cancelled"
     db.commit()
@@ -161,15 +176,15 @@ def reschedule_appointment(
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
 
     if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
 
     if current_user.role == "patient" and appointment.patient_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
     if current_user.role == "doctor" and appointment.doctor_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
 
     if reschedule_data.new_date < date.today():
-        raise HTTPException(status_code=400, detail="Cannot reschedule to a past date.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot reschedule to a past date.")
 
     # Check slot collision
     conflict = db.query(Appointment).filter(
@@ -181,7 +196,7 @@ def reschedule_appointment(
     ).first()
 
     if conflict:
-        raise HTTPException(status_code=400, detail="The requested time slot is not available.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The requested time slot is not available.")
 
     appointment.appointment_date = reschedule_data.new_date
     appointment.appointment_time = reschedule_data.new_time
@@ -207,12 +222,12 @@ def accept_appointment(
     ).first()
 
     if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
 
     if appointment.status == "Accepted":
-        raise HTTPException(status_code=400, detail="Appointment is already accepted.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Appointment is already accepted.")
     if appointment.status in ["Completed", "Rejected", "Cancelled"]:
-        raise HTTPException(status_code=400, detail=f"Cannot accept an appointment that is {appointment.status.lower()}.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot accept an appointment that is {appointment.status.lower()}.")
 
     appointment.status = "Accepted"
     db.commit()
@@ -233,10 +248,10 @@ def reject_appointment(
     ).first()
 
     if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
 
     if appointment.status in ["Completed", "Rejected", "Cancelled"]:
-        raise HTTPException(status_code=400, detail=f"Cannot reject an appointment that is {appointment.status.lower()}.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot reject an appointment that is {appointment.status.lower()}.")
 
     appointment.status = "Rejected"
     db.commit()
@@ -257,10 +272,10 @@ def complete_appointment(
     ).first()
 
     if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
 
     if appointment.status == "Completed":
-        raise HTTPException(status_code=400, detail="Appointment is already completed.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Appointment is already completed.")
 
     appointment.status = "Completed"
     db.commit()

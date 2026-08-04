@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.chat import Chat
+from app.models.chat_history import ChatHistory
 from app.services.current_user import get_current_user
-from app.services.groq_service import ask_groq
+from app.services.groq_service import ask_groq, wrap_user_input, PROMPT_INJECTION_GUARD
 from app.prompts.chatbot_prompt import SYSTEM_PROMPT
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse, ChatHistoryItem
 
 router = APIRouter(
     prefix="/chatbot",
@@ -20,18 +22,24 @@ def ask_chatbot(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
     prompt = f"""
 {SYSTEM_PROMPT}
 
+{PROMPT_INJECTION_GUARD}
+
 Question:
-
-{request.question}
+{wrap_user_input(request.question)}
 """
+    try:
+        answer = ask_groq(prompt)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI service is unavailable. Please try again.",
+            headers={"X-MEDAI-CODE": "AI_UNAVAILABLE"},
+        )
 
-    answer = ask_groq(prompt)
-
-    chat = Chat(
+    chat = ChatHistory(
         user_id=current_user.id,
         question=request.question,
         answer=answer
@@ -40,19 +48,18 @@ Question:
     db.add(chat)
     db.commit()
 
-    return {
-        "answer": answer
-    }
+    return {"answer": answer}
 
-@router.get("/history")
+
+@router.get("/history", response_model=List[ChatHistoryItem])
 def chat_history(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
     chats = (
-        db.query(Chat)
-        .filter(Chat.user_id == current_user.id)
+        db.query(ChatHistory)
+        .filter(ChatHistory.user_id == current_user.id)
+        .order_by(ChatHistory.created_at.asc(), ChatHistory.id.asc())
         .all()
     )
 

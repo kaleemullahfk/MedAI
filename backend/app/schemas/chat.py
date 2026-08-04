@@ -1,9 +1,23 @@
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=4000)
 
 
 class ChatResponse(BaseModel):
     answer: str
+
+
+class ChatHistoryItem(BaseModel):
+    id: int
+    user_id: int
+    question: str
+    answer: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
