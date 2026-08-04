@@ -1,5 +1,33 @@
 import api, { toApiError } from "./api";
 
+export interface ReportRecord {
+  id: number;
+  title: string;
+  file_name: string;
+  file_type: string;
+  extracted_text: string | null;
+  /** JSON string of the analysis object (backend stores it as Text). */
+  ai_analysis: string | null;
+  uploaded_at: string;
+}
+
+export interface ReportAnalysis {
+  summary?: string;
+  findings?: string[];
+  abnormal_values?: string[];
+  recommendations?: string[];
+}
+
+/** Parse the backend's ai_analysis JSON string into an object. */
+export function parseAnalysis(raw: string | null): ReportAnalysis {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as ReportAnalysis;
+  } catch {
+    return {};
+  }
+}
+
 export const uploadReport = async (file: File, title: string = "Medical Report") => {
   const formData = new FormData();
   formData.append("file", file);
@@ -7,16 +35,16 @@ export const uploadReport = async (file: File, title: string = "Medical Report")
 
   try {
     const response = await api.post("/report/upload", formData);
-    return response.data;
+    return response.data as ReportRecord;
   } catch (error) {
     throw toApiError(error);
   }
 };
 
-export const getMyReports = async () => {
+export const getMyReports = async (): Promise<ReportRecord[]> => {
   try {
     const response = await api.get("/report/my");
-    return response.data;
+    return response.data as ReportRecord[];
   } catch (error) {
     throw toApiError(error);
   }
