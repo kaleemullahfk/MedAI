@@ -1,11 +1,19 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
 export const getPatientProfile = async () => {
-  const response = await api.get("/patient-profile/me");
-  return response.data;
+  try {
+    const response = await api.get("/patient-profile/me");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
-export const createPatientProfile = async (data: unknown) => {
-  const response = await api.post("/patient-profile/", data);
-  return response.data;
+export const updatePatientProfile = async (data: Record<string, unknown>) => {
+  try {
+    const response = await api.put("/patient-profile/me", data);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

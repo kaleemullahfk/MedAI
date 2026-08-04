@@ -1,13 +1,12 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
 export const getPatientDashboard = async () => {
-  const response = await api.get("/dashboard/patient");
-  return response.data;
-};
-
-export const getPatientProfile = async () => {
-  const response = await api.get("/patient-profile/me");
-  return response.data;
+  try {
+    const response = await api.get("/dashboard/patient");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const bookAppointment = async (data: {
@@ -16,11 +15,19 @@ export const bookAppointment = async (data: {
   appointment_time: string;
   reason: string;
 }) => {
-  const response = await api.post("/appointment/", data);
-  return response.data;
+  try {
+    const response = await api.post("/appointment/", data);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const getMyAppointments = async () => {
-  const response = await api.get("/appointment/my");
-  return response.data;
+  try {
+    const response = await api.get("/appointment/my");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

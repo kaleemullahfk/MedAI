@@ -26,30 +26,6 @@ export default function ChatbotPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  async function loadHistory() {
-    try {
-      const history: ChatHistory[] = await getChatHistory();
-
-      const formatted: ChatMessage[] = [];
-
-      history.forEach((chat) => {
-        formatted.push({
-          sender: "user",
-          text: chat.question,
-        });
-
-        formatted.push({
-          sender: "ai",
-          text: chat.answer,
-        });
-      });
-
-      setMessages(formatted);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   useEffect(() => {
     const fetchHistory = async () => {
         try {

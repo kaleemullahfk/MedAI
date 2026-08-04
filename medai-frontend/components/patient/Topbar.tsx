@@ -1,25 +1,36 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 
-export default function Topbar() {
+import { useAuth } from "@/hooks/useAuth";
+
+export default function PatientTopbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const { user } = useAuth();
+
   return (
-    <header className="bg-white shadow h-20 px-8 flex justify-between items-center">
-      <div>
-        <h1 className="text-3xl font-bold">
-          Patient Dashboard
-        </h1>
-
-        <p className="text-gray-500">
-          Welcome back 👋
-        </p>
+    <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-8">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="rounded-md p-2 hover:bg-muted lg:hidden"
+          aria-label="Open sidebar"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold md:text-2xl">Patient Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            {user ? `Welcome back, ${user.full_name}` : "Welcome back"}
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-5">
-        <Bell />
-
-        <div className="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center">
-          P
+      <div className="flex items-center gap-4">
+        <button className="rounded-md p-2 hover:bg-muted" aria-label="Notifications">
+          <Bell className="h-5 w-5" />
+        </button>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-bold text-white">
+          {user?.full_name?.charAt(0) ?? "P"}
         </div>
       </div>
     </header>

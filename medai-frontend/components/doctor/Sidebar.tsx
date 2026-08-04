@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -10,78 +11,96 @@ import {
   MessageCircle,
   User,
   LogOut,
+  X,
+  Stethoscope as LogoIcon,
 } from "lucide-react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
 const menus = [
-  {
-    name: "Dashboard",
-    href: "/doctor",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Appointments",
-    href: "/doctor/appointments",
-    icon: CalendarDays,
-  },
-  {
-    name: "Patients",
-    href: "/doctor/patients",
-    icon: Users,
-  },
-  {
-    name: "AI Prescription",
-    href: "/doctor/prescription",
-    icon: Stethoscope,
-  },
-  {
-    name: "Medical Reports",
-    href: "/doctor/reports",
-    icon: FileText,
-  },
-  {
-    name: "AI Chatbot",
-    href: "/doctor/chatbot",
-    icon: MessageCircle,
-  },
-  {
-    name: "Profile",
-    href: "/doctor/profile",
-    icon: User,
-  },
+  { name: "Dashboard", href: "/doctor", icon: LayoutDashboard },
+  { name: "Appointments", href: "/doctor/appointments", icon: CalendarDays },
+  { name: "Patients", href: "/doctor/patients", icon: Users },
+  { name: "AI Prescription", href: "/doctor/prescription", icon: Stethoscope },
+  { name: "Medical Reports", href: "/doctor/reports", icon: FileText },
+  { name: "AI Chatbot", href: "/doctor/chatbot", icon: MessageCircle },
+  { name: "Profile", href: "/doctor/profile", icon: User },
 ];
 
-export default function Sidebar() {
+export default function DoctorSidebar({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const pathname = usePathname();
+  const { logout } = useAuth();
+
   return (
-    <aside className="w-64 bg-slate-900 text-white min-h-screen p-6">
-      <h1 className="text-3xl font-bold mb-10">
-        🩺 MEDAI
-      </h1>
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      <nav className="space-y-2">
-        {menus.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition"
-            >
-              <Icon size={20} />
-
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <button
-        className="flex items-center gap-3 mt-12 px-4 py-3 w-full rounded-lg bg-red-600 hover:bg-red-700"
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-white transition-transform lg:static lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
       >
-        <LogOut size={20} />
+        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
+          <span className="flex items-center gap-2 text-2xl font-bold">
+            <LogoIcon className="h-7 w-7 text-blue-400" />
+            MEDAI
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 hover:bg-slate-800 lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-        Logout
-      </button>
-    </aside>
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {menus.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white",
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-slate-800 p-4">
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center justify-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium transition hover:bg-red-700"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

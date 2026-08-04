@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { uploadPrescription } from "@/services/prescription";
+import { analyzePrescription } from "@/services/prescription";
 
 interface PrescriptionResult {
   medicines: string[];
@@ -25,7 +25,7 @@ export default function PrescriptionAnalyzerPage() {
     try {
       setLoading(true);
 
-      const data = await uploadPrescription(file);
+      const data = await analyzePrescription(file);
 
       setResult(data);
     } catch (error) {

@@ -1,16 +1,28 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
 export const getDoctorDashboard = async () => {
-  const response = await api.get("/dashboard/doctor");
-  return response.data;
+  try {
+    const response = await api.get("/dashboard/doctor");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const getPatientDashboard = async () => {
-  const response = await api.get("/dashboard/patient");
-  return response.data;
+  try {
+    const response = await api.get("/dashboard/patient");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const getAdminDashboard = async () => {
-  const response = await api.get("/dashboard/admin");
-  return response.data;
+  try {
+    const response = await api.get("/dashboard/admin");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

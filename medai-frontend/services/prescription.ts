@@ -1,19 +1,13 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
-export const uploadPrescription = async (file: File) => {
+export const analyzePrescription = async (file: File) => {
   const formData = new FormData();
-
   formData.append("file", file);
 
-  const response = await api.post(
-    "/prescription/upload",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-
-  return response.data;
+  try {
+    const response = await api.post("/prescription/analyze-file", formData);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

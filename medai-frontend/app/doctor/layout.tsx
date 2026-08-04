@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+
+import { RoleGuard } from "@/components/auth/RoleGuard";
 import Sidebar from "@/components/doctor/Sidebar";
 import Topbar from "@/components/doctor/Topbar";
 
@@ -6,17 +11,19 @@ export default function DoctorLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex bg-slate-100">
-      <Sidebar />
+    <RoleGuard role="doctor">
+      <div className="flex min-h-screen bg-muted/40">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1">
-        <Topbar />
+        <div className="flex flex-1 flex-col">
+          <Topbar onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="p-8">
-          {children}
-        </main>
+          <main className="flex-1 p-4 md:p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

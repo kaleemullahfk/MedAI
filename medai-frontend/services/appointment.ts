@@ -1,21 +1,37 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
 export const getDoctorAppointments = async () => {
-  const response = await api.get("/appointment/doctor");
-  return response.data;
+  try {
+    const response = await api.get("/appointment/doctor");
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const acceptAppointment = async (id: number) => {
-  const response = await api.put(`/appointment/${id}/accept`);
-  return response.data;
+  try {
+    const response = await api.put(`/appointment/${id}/accept`);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const rejectAppointment = async (id: number) => {
-  const response = await api.put(`/appointment/${id}/reject`);
-  return response.data;
+  try {
+    const response = await api.put(`/appointment/${id}/reject`);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };
 
 export const completeAppointment = async (id: number) => {
-  const response = await api.put(`/appointment/${id}/complete`);
-  return response.data;
+  try {
+    const response = await api.put(`/appointment/${id}/complete`);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

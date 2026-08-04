@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { FileHeart } from "lucide-react";
-
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarPlus,
@@ -15,111 +13,100 @@ import {
   Activity,
   BookOpen,
   Pill,
+  FileHeart,
+  HeartPulse,
+  X,
 } from "lucide-react";
 
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
 const menu = [
-  {
-    name: "Dashboard",
-    href: "/patient",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Book Appointment",
-    href: "/patient/book",
-    icon: CalendarPlus,
-  },
-  {
-    name: "My Appointments",
-    href: "/patient/appointments",
-    icon: CalendarDays,
-  },
-  {
-    name: "AI Symptom Checker",
-    href: "/patient/symptom-checker",
-    icon: Activity,
-  },
-  {
-    name: "Medical Reports",
-    href: "/patient/reports",
-    icon: FileText,
-  },
-  {
-    name: "AI Chatbot",
-    href: "/patient/chatbot",
-    icon: Bot,
-  },
-  {
-    name: "Profile",
-    href: "/patient/profile",
-    icon: User,
-  },
-  {
-    name: "AI Medicine",
-    href: "/patient/medicine-recommendation",
-    icon: Pill,
-  },
-  {
-    name: "Disease Explanation",
-    href: "/patient/disease-explanation",
-    icon: BookOpen,
-  },
-  {
-  name: "Prescription Analyzer",
-  href: "/patient/prescription",
-  icon: FileHeart,
-  },
+  { name: "Dashboard", href: "/patient", icon: LayoutDashboard },
+  { name: "Book Appointment", href: "/patient/book", icon: CalendarPlus },
+  { name: "My Appointments", href: "/patient/appointments", icon: CalendarDays },
+  { name: "AI Symptom Checker", href: "/patient/symptom-checker", icon: Activity },
+  { name: "Medical Reports", href: "/patient/reports", icon: FileText },
+  { name: "AI Chatbot", href: "/patient/chatbot", icon: Bot },
+  { name: "Profile", href: "/patient/profile", icon: User },
+  { name: "AI Medicine", href: "/patient/medicine-recommendation", icon: Pill },
+  { name: "Disease Explanation", href: "/patient/disease-explanation", icon: BookOpen },
+  { name: "Prescription Analyzer", href: "/patient/prescription", icon: FileHeart },
 ];
 
-export default function Sidebar() {
+export default function PatientSidebar({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    router.push("/");
-  };
+  const { logout } = useAuth();
 
   return (
-    <aside className="w-72 h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Logo */}
-      <div className="shrink-0 text-4xl font-bold text-center p-8 border-b border-slate-800">
-        🩺 MEDAI
-      </div>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-slate-900 text-white transition-transform lg:static lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
+          <span className="flex items-center gap-2 text-2xl font-bold">
+            <HeartPulse className="h-7 w-7 text-blue-400" />
+            MEDAI
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 hover:bg-slate-800 lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-      {/* Scrollable Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-        {menu.map((item) => {
-          const Icon = item.icon;
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {menu.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white",
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
 
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-4 rounded-lg p-4 mb-2 transition-all duration-200 ${
-                pathname === item.href
-                  ? "bg-blue-600"
-                  : "hover:bg-slate-800"
-              }`}
-            >
-              <Icon size={22} className="shrink-0" />
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Logout */}
-      <div className="shrink-0 p-4 border-t border-slate-800">
-        <button
-          onClick={logout}
-          className="w-full bg-red-600 hover:bg-red-700 transition rounded-lg p-4 flex items-center justify-center gap-3 font-medium"
-        >
-          <LogOut size={22} />
-          Logout
-        </button>
-      </div>
-
-    </aside>
+        <div className="border-t border-slate-800 p-4">
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center justify-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium transition hover:bg-red-700"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

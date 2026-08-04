@@ -1,9 +1,10 @@
-import api from "./api";
+import api, { toApiError } from "./api";
 
 export const recommendMedicine = async (symptoms: string) => {
-  const response = await api.post("/medicine/recommend", {
-    symptoms,
-  });
-
-  return response.data;
+  try {
+    const response = await api.post("/medicine/recommend", { symptoms });
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
 };

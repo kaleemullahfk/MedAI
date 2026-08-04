@@ -2,107 +2,114 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { HeartPulse } from "lucide-react";
 
-import { loginUser, getCurrentUser } from "@/services/auth";
+import { loginUser } from "@/services/auth";
+import { toApiError } from "@/services/api";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
+const loginSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+
 export default function Home() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-  const handleLogin = async () => {
+  const onSubmit = async (values: LoginForm) => {
+    setError(null);
     try {
-      // Login API
-      const login = await loginUser(email, password);
-
-      // Save JWT Token
-      localStorage.setItem("token", login.access_token);
-
-      // Get Logged-in User
-      const user = await getCurrentUser();
-
-      // Redirect Based on Role
-      if (user.role === "doctor") {
+      const { user } = await loginUser(values);
+      if (user?.role === "doctor") {
         router.push("/doctor");
-      } else if (user.role === "patient") {
+      } else if (user?.role === "patient") {
         router.push("/patient");
-      } else if (user.role === "admin") {
+      } else if (user?.role === "admin") {
         router.push("/admin");
       } else {
-        alert("Unknown user role.");
+        setError("Unknown user role.");
       }
+    } catch (err) {
+      setError(toApiError(err).message);
     }
-      catch (error: unknown) {
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "response" in error
-        ) {
-          const err = error as {
-            response?: {
-              data?: {
-                detail?: string;
-              };
-            };
-          };
-
-          alert(
-            err.response?.data?.detail ||
-            "Invalid Email or Password"
-          );
-        } else {
-          alert("Invalid Email or Password");
-        }
-      }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100">
-      <Card className="w-[420px] p-8 space-y-5 shadow-xl">
-        <h1 className="text-3xl font-bold text-center">
-          🩺 MEDAI
-        </h1>
-
-        <p className="text-center text-gray-500">
-          AI Powered Healthcare Platform
-        </p>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-
-          <Input
-            id="email"
-            type="email"
-            placeholder="doctor@gmail.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+      <Card className="w-full max-w-md p-8 shadow-xl">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <span className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white">
+            <HeartPulse className="h-8 w-8" />
+          </span>
+          <h1 className="text-3xl font-bold tracking-tight">MEDAI</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            AI-powered healthcare platform
+          </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="doctor@gmail.com"
+              aria-invalid={!!errors.email}
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
 
-          <Input
-            id="password"
-            type="password"
-            placeholder="********"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              aria-invalid={!!errors.password}
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
+          </div>
 
-        <Button
-          className="w-full"
-          onClick={handleLogin}
-        >
-          Login
-        </Button>
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in…" : "Login"}
+          </Button>
+        </form>
       </Card>
     </div>
   );
