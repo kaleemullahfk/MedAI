@@ -15,5 +15,4 @@ class MedicalReportResponse(BaseModel):
     uploaded_at: datetime
     patient: Optional[UserResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

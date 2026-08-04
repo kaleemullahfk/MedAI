@@ -42,5 +42,4 @@ class PatientProfileResponse(BaseModel):
     medical_history: Optional[str] = None
     allergies: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

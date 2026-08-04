@@ -30,5 +30,4 @@ class PrescriptionResponse(BaseModel):
     doctor: Optional[UserResponse] = None
     patient: Optional[UserResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

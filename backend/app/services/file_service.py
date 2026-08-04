@@ -59,7 +59,7 @@ def validate_and_save(upload: UploadFile, kind: str) -> tuple[Path, str]:
     # arrives as image/jpeg from browsers, so match on magic bytes only.
     if not head.startswith(_MAGIC[extension]):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 "File contents do not match its extension. Please upload a "
                 "valid, legible PDF or image."

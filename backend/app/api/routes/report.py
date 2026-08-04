@@ -38,13 +38,13 @@ def _extract_text(file_path: str, extension: str) -> str:
         )
     except Exception as exc:  # noqa: BLE001 - normalize extraction failures
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Could not extract text from the uploaded file. Please upload a clear, legible PDF or image.",
         ) from exc
 
     if not text or not text.strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="No readable text was found in the uploaded file. Please upload a clear, legible PDF or image.",
         )
 
