@@ -24,6 +24,7 @@ from app.api.routes import (
     prescription,
     appointment,
     chatbot,
+    admin,
 )
 import app.models  # noqa: F401  (registers all models on Base.metadata)
 
@@ -119,6 +120,7 @@ app.include_router(report.router)
 app.include_router(prescription.router)
 app.include_router(appointment.router)
 app.include_router(chatbot.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
