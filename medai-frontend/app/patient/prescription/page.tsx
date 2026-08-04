@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { analyzePrescription } from "@/services/prescription";
+import { toApiError } from "@/services/api";
 
 interface PrescriptionResult {
   medicines: string[];
@@ -18,7 +20,7 @@ export default function PrescriptionAnalyzerPage() {
 
   const handleUpload = async () => {
     if (!file) {
-      alert("Please select a prescription.");
+      toast.error("Please select a prescription.");
       return;
     }
 
@@ -30,7 +32,7 @@ export default function PrescriptionAnalyzerPage() {
       setResult(data);
     } catch (error) {
       console.error(error);
-      alert("Unable to analyze prescription.");
+      toast.error(toApiError(error).message);
     } finally {
       setLoading(false);
     }
@@ -42,11 +44,11 @@ export default function PrescriptionAnalyzerPage() {
         AI Prescription Analyzer
       </h1>
 
-      <div className="bg-white rounded-xl shadow p-8">
+      <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-8">
 
         <div className="flex flex-col md:flex-row gap-4 items-center">
 
-          <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 border-2 border-dashed border-blue-400 rounded-lg px-6 py-4 font-medium text-gray-700 transition">
+          <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 border-2 border-dashed border-blue-400 rounded-lg px-6 py-4 font-medium text-muted-foreground transition">
             📄 Choose Prescription
 
             <input
@@ -60,7 +62,7 @@ export default function PrescriptionAnalyzerPage() {
           </label>
 
           {file && (
-            <span className="text-gray-600 font-medium">
+            <span className="text-muted-foreground font-medium">
               {file.name}
             </span>
           )}
@@ -80,7 +82,7 @@ export default function PrescriptionAnalyzerPage() {
       {result && (
         <div className="space-y-8">
 
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
             <h2 className="text-2xl font-bold mb-6">
               Medicines
             </h2>
@@ -127,7 +129,7 @@ export default function PrescriptionAnalyzerPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
 
             <h2 className="text-2xl font-bold mb-4">
               Precautions
@@ -151,7 +153,7 @@ export default function PrescriptionAnalyzerPage() {
               Doctor&apos;s Advice
             </h2>
 
-            <p className="text-gray-700 leading-7">
+            <p className="text-muted-foreground leading-7">
               {result.doctor_advice}
             </p>
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { checkSymptoms } from "@/services/symptom";
+import { toApiError } from "@/services/api";
 
 interface AIResult {
   possible_conditions: string[];
@@ -17,7 +19,7 @@ export default function SymptomChecker() {
 
   const handleCheck = async () => {
     if (!symptoms.trim()) {
-      alert("Please enter your symptoms.");
+      toast.error("Please enter your symptoms.");
       return;
     }
 
@@ -29,7 +31,7 @@ export default function SymptomChecker() {
       setResult(data);
     } catch (error) {
       console.error(error);
-      alert("Unable to analyze symptoms.");
+      toast.error(toApiError(error).message);
     } finally {
       setLoading(false);
     }
@@ -41,7 +43,7 @@ export default function SymptomChecker() {
         AI Symptom Checker
       </h1>
 
-      <div className="bg-white rounded-xl shadow p-6">
+      <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
         <textarea
           rows={6}
           className="w-full border rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -60,7 +62,7 @@ export default function SymptomChecker() {
       </div>
 
       {result && (
-        <div className="bg-white rounded-xl shadow p-6 space-y-8">
+        <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6 space-y-8">
 
           <h2 className="text-2xl font-bold">
             AI Analysis Result
@@ -109,7 +111,7 @@ export default function SymptomChecker() {
               Recommended Specialist
             </h3>
 
-            <p className="text-gray-700">
+            <p className="text-muted-foreground">
               {result.recommended_specialist}
             </p>
           </div>

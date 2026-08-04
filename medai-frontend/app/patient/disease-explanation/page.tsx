@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { explainDisease } from "@/services/disease";
+import { toApiError } from "@/services/api";
 
 interface DiseaseResult {
   disease: string;
@@ -21,7 +23,7 @@ export default function DiseaseExplanation() {
 
   const handleExplain = async () => {
     if (!disease.trim()) {
-      alert("Please enter a disease name.");
+      toast.error("Please enter a disease name.");
       return;
     }
 
@@ -33,7 +35,7 @@ export default function DiseaseExplanation() {
       setResult(data);
     } catch (error) {
       console.error(error);
-      alert("Unable to explain disease.");
+      toast.error(toApiError(error).message);
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function DiseaseExplanation() {
         AI Disease Explanation
       </h1>
 
-      <div className="bg-white rounded-xl shadow p-6">
+      <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
 
         <input
           type="text"
@@ -68,14 +70,14 @@ export default function DiseaseExplanation() {
 
       {result && (
 
-        <div className="bg-white rounded-xl shadow p-6 space-y-8">
+        <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6 space-y-8">
 
           <div>
             <h2 className="text-2xl font-bold text-blue-600">
               {result.disease}
             </h2>
 
-            <p className="mt-3 text-gray-700">
+            <p className="mt-3 text-muted-foreground">
               {result.overview}
             </p>
           </div>

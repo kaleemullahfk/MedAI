@@ -3,6 +3,7 @@
 import { Menu } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AdminTopbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
@@ -25,7 +26,8 @@ export default function AdminTopbar({ onMenuClick }: { onMenuClick: () => void }
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 font-bold text-white">
           {user?.full_name?.charAt(0) ?? "A"}
         </div>

@@ -3,6 +3,7 @@
 import { Bell, Menu } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DoctorTopbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
@@ -25,7 +26,8 @@ export default function DoctorTopbar({ onMenuClick }: { onMenuClick: () => void 
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
         <button className="rounded-md p-2 hover:bg-muted" aria-label="Notifications">
           <Bell className="h-5 w-5" />
         </button>

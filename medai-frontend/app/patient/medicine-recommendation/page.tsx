@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { recommendMedicine } from "@/services/medicine";
+import { toApiError } from "@/services/api";
 
 interface MedicineResult {
   possible_conditions: string[];
@@ -18,7 +20,7 @@ export default function MedicineRecommendation() {
 
   const handleRecommend = async () => {
     if (!symptoms.trim()) {
-      alert("Please enter your symptoms.");
+      toast.error("Please enter your symptoms.");
       return;
     }
 
@@ -30,7 +32,7 @@ export default function MedicineRecommendation() {
       setResult(data);
     } catch (error) {
       console.error(error);
-      alert("Unable to recommend medicine.");
+      toast.error(toApiError(error).message);
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ export default function MedicineRecommendation() {
         AI Medicine Recommendation
       </h1>
 
-      <div className="bg-white rounded-xl shadow p-6">
+      <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
 
         <textarea
           rows={6}
@@ -63,7 +65,7 @@ export default function MedicineRecommendation() {
       </div>
 
       {result && (
-        <div className="bg-white rounded-xl shadow p-6 space-y-8">
+        <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6 space-y-8">
 
           {/* Possible Conditions */}
 
