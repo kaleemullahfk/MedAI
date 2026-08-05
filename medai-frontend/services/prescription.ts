@@ -42,7 +42,7 @@ export const createPrescription = async (data: {
   instructions?: string | null;
 }) => {
   try {
-    const response = await api.post("/prescription/", data);
+    const response = await api.post("/prescription", data);
     return response.data as PrescriptionRecord;
   } catch (error) {
     throw toApiError(error);

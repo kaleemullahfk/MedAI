@@ -22,7 +22,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=PrescriptionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PrescriptionResponse, status_code=status.HTTP_201_CREATED)
 def create_prescription(
     prescription: PrescriptionCreate,
     db: Session = Depends(get_db),
