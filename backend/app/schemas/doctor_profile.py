@@ -11,6 +11,7 @@ class DoctorProfileCreate(BaseModel):
     consultation_fee: int
     available_days: str
     available_time: str
+    license_number: Optional[str] = None
 
 
 class DoctorProfileUpdate(BaseModel):
@@ -21,6 +22,7 @@ class DoctorProfileUpdate(BaseModel):
     consultation_fee: Optional[int] = None
     available_days: Optional[str] = None
     available_time: Optional[str] = None
+    license_number: Optional[str] = None
 
 
 class DoctorProfileResponse(BaseModel):
@@ -33,6 +35,7 @@ class DoctorProfileResponse(BaseModel):
     consultation_fee: int
     available_days: str
     available_time: str
+    license_number: Optional[str] = None
     is_verified: bool = True
     user: Optional[UserResponse] = None
 

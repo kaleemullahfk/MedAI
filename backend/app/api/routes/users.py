@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
 from app.database.connection import get_db
@@ -16,10 +17,35 @@ router = APIRouter(
 )
 
 
+class UpdateMyProfile(BaseModel):
+    full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+
+
 @router.get("/me", response_model=UserResponse)
 def get_my_profile(
     current_user: User = Depends(get_current_user)
 ):
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+def update_my_profile(
+    payload: UpdateMyProfile,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if payload.full_name is not None:
+        full_name = payload.full_name.strip()
+        if not full_name:
+            from fastapi import HTTPException, status
+
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Full name cannot be blank.",
+            )
+        current_user.full_name = full_name
+        db.commit()
+        db.refresh(current_user)
     return current_user
 
 

@@ -15,6 +15,7 @@ class DoctorProfile(Base):
     consultation_fee = Column(Integer, nullable=False, default=50)
     available_days = Column(String, nullable=False, default="Monday - Friday")
     available_time = Column(String, nullable=False, default="09:00 AM - 05:00 PM")
+    license_number = Column(String, nullable=True)
     is_verified = Column(Boolean, default=True)
 
     user = relationship("User")
