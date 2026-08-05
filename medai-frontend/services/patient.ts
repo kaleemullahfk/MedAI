@@ -31,3 +31,24 @@ export const getMyAppointments = async () => {
     throw toApiError(error);
   }
 };
+
+export const cancelAppointment = async (id: number) => {
+  try {
+    const response = await api.put(`/appointment/${id}/cancel`);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+};
+
+export const rescheduleAppointment = async (
+  id: number,
+  data: { new_date: string; new_time: string; reason?: string },
+) => {
+  try {
+    const response = await api.put(`/appointment/${id}/reschedule`, data);
+    return response.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+};

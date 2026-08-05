@@ -14,7 +14,15 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 export async function proxyRequest(
   request: NextRequest,
 ): Promise<Response> {
-  const pathname = request.nextUrl.pathname.replace(/^\/api/, "");
+  // Use the RAW url to detect a trailing slash: Next normalizes it away on
+  // nextUrl.pathname, but FastAPI routes like POST /appointment/ require it.
+  // Without this, the backend 307/308-redirects and non-GET calls break.
+  const rawPathname = new URL(request.url).pathname;
+  const hasTrailingSlash = rawPathname.endsWith("/") && rawPathname !== "/api/";
+  let pathname = rawPathname.replace(/^\/api/, "");
+  if (hasTrailingSlash && !pathname.endsWith("/")) {
+    pathname += "/";
+  }
 
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
