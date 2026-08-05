@@ -8,9 +8,11 @@ import axios from "axios";
  */
 const api = axios.create({
   baseURL: "/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // No global Content-Type. axios sets `application/json` for object bodies
+  // and lets the browser set the correct `multipart/form-data; boundary=...`
+  // header for FormData uploads. A global JSON header would be forwarded by
+  // the BFF for uploads too, making FastAPI reject the multipart body with a
+  // 422 "Request validation failed".
 });
 
 /**
