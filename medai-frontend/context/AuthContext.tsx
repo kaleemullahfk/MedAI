@@ -17,6 +17,8 @@ interface AuthContextValue {
   user: User | null;
   /** True until the initial session check completes. */
   loading: boolean;
+  /** Set the authenticated user (called by the login page after a successful login). */
+  setUser: (user: User | null) => void;
   logout: () => Promise<void>;
 }
 
@@ -60,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ user, loading, logout }),
+    () => ({ user, loading, setUser, logout }),
     [user, loading, logout],
   );
 

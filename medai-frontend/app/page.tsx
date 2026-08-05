@@ -9,6 +9,7 @@ import { HeartPulse } from "lucide-react";
 
 import { loginUser } from "@/services/auth";
 import { toApiError } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function Home() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -39,6 +41,10 @@ export default function Home() {
     setError(null);
     try {
       const { user } = await loginUser(values);
+      // Populate AuthContext immediately so the RoleGuard in the target layout
+      // sees the logged-in user instead of null (which caused a redirect loop
+      // back to login for doctor/admin).
+      setUser(user);
       if (user?.role === "doctor") {
         router.push("/doctor");
       } else if (user?.role === "patient") {
