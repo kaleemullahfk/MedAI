@@ -31,10 +31,12 @@ class UserCreate(BaseModel):
             raise ValueError("Password cannot start or end with whitespace.")
         if any(ch.isspace() for ch in value):
             raise ValueError("Password cannot contain whitespace.")
-        # Reject trivial passwords that mirror the account email prefix.
+        # Reject only the trivial case where the password IS the email prefix
+        # (e.g. email "jane@x.com" + password "jane"). Merely containing the
+        # prefix (e.g. "patient123" for "patient@medai.dev") is fine.
         email = (info.data.get("email") or "").split("@")[0].lower()
-        if email and email in value.lower():
-            raise ValueError("Password cannot contain the email prefix.")
+        if email and value.lower() == email:
+            raise ValueError("Password cannot be the same as your email prefix.")
         return value
 
 

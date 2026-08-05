@@ -88,12 +88,25 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Pydantic error entries can contain non-serializable objects (e.g. a
+    # ValueError instance in ctx). Collapse them to safe strings so this
+    # handler never crashes into a 500.
+    safe_errors: list = []
+    for err in exc.errors():
+        ctx = err.get("ctx")
+        if isinstance(ctx, dict):
+            ctx = {
+                k: (str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v)
+                for k, v in ctx.items()
+            }
+        safe_errors.append({**err, "ctx": ctx})
+
     return JSONResponse(
         status_code=422,
         content={
             "detail": "Request validation failed.",
             "code": "VALIDATION_ERROR",
-            "errors": exc.errors(),
+            "errors": safe_errors,
         },
     )
 
