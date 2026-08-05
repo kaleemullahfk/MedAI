@@ -71,3 +71,35 @@ export const resetUserPassword = async (
     throw toApiError(error);
   }
 };
+
+export interface AnalyticsSeriesPoint {
+  date: string;
+  new_users: number;
+  appointments: number;
+  reports: number;
+  prescriptions: number;
+  chats: number;
+}
+
+export interface AnalyticsResponse {
+  days: number;
+  totals: {
+    doctors: number;
+    patients: number;
+    admins: number;
+    appointments: number;
+    reports: number;
+    prescriptions: number;
+    chats: number;
+  };
+  series: AnalyticsSeriesPoint[];
+}
+
+export const getAdminAnalytics = async (days = 30): Promise<AnalyticsResponse> => {
+  try {
+    const response = await api.get(`/dashboard/admin/analytics?days=${days}`);
+    return response.data as AnalyticsResponse;
+  } catch (error) {
+    throw toApiError(error);
+  }
+};
