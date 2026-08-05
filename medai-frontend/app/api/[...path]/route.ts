@@ -63,6 +63,15 @@ export async function proxyRequest(
   const contentDisposition = backendResponse.headers.get("content-disposition");
   if (contentDisposition) headersOut.set("content-disposition", contentDisposition);
 
+  // 204/304 have no body; the web Response constructor rejects a body with
+  // these statuses, so return an empty response for them.
+  if (backendResponse.status === 204 || backendResponse.status === 304) {
+    return new Response(null, {
+      status: backendResponse.status,
+      headers: headersOut,
+    });
+  }
+
   const arrayBuffer = await backendResponse.arrayBuffer();
   return new Response(arrayBuffer, {
     status: backendResponse.status,
