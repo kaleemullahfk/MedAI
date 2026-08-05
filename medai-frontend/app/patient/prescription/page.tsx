@@ -2,163 +2,247 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  ClipboardCopy,
+  Download,
+  RotateCcw,
+  Pill,
+  AlertTriangle,
+  ShieldAlert,
+  HeartPulse,
+  ListChecks,
+  Sparkles,
+} from "lucide-react";
+
 import { analyzePrescription } from "@/services/prescription";
 import { toApiError } from "@/services/api";
+import { FileUploadCard } from "@/components/upload/FileUploadCard";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PrescriptionResult {
-  medicines: string[];
-  purpose: string[];
-  dosage: string[];
-  precautions: string[];
-  doctor_advice: string;
+  doctor_name?: string;
+  hospital?: string;
+  patient_name?: string;
+  prescription_date?: string;
+  diagnosis?: string;
+  medicines?: string[];
+  purpose?: string[];
+  dosage?: string[];
+  frequency?: string[];
+  duration?: string[];
+  instructions?: string[];
+  warnings?: string[];
+  interactions?: string[];
+  side_effects?: string[];
+  missed_dose?: string[];
+  lifestyle_recommendations?: string[];
+  summary?: string;
+}
+
+function ResultCard({
+  title,
+  icon,
+  items,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: string[] | undefined;
+}) {
+  return (
+    <div className="rounded-xl bg-card p-5 shadow ring-1 ring-foreground/10">
+      <h3 className="mb-3 flex items-center gap-2 font-semibold">{icon}{title}</h3>
+      {items && items.length > 0 ? (
+        <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
+          {items.map((item, i) => (
+            <li key={i}>{item === "Not Available" ? "Not Available" : item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Not Available</p>
+      )}
+    </div>
+  );
 }
 
 export default function PrescriptionAnalyzerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PrescriptionResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleUpload = async () => {
-    if (!file) {
-      toast.error("Please select a prescription.");
-      return;
-    }
-
+  const handleUpload = async (f: File) => {
+    setFile(f);
+    setError(null);
+    setLoading(true);
+    setResult(null);
     try {
-      setLoading(true);
-
-      const data = await analyzePrescription(file);
-
+      const data = await analyzePrescription(f);
       setResult(data);
-    } catch (error) {
-      console.error(error);
-      toast.error(toApiError(error).message);
+      toast.success("Prescription analyzed successfully.");
+    } catch (err) {
+      console.error(err);
+      setError(toApiError(err).message);
+      toast.error(toApiError(err).message);
     } finally {
       setLoading(false);
     }
   };
 
+  const copyResult = async () => {
+    if (!result) return;
+    const text = JSON.stringify(result, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard.");
+    } catch {
+      toast.error("Could not copy.");
+    }
+  };
+
+  const downloadResult = () => {
+    if (!result) return;
+    const text = JSON.stringify(result, null, 2);
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "prescription-analysis.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const reset = () => {
+    setFile(null);
+    setResult(null);
+    setError(null);
+  };
+
+  const meta: { label: string; value: string }[] = [
+    { label: "Doctor", value: result?.doctor_name ?? "" },
+    { label: "Hospital", value: result?.hospital ?? "" },
+    { label: "Patient", value: result?.patient_name ?? "" },
+    { label: "Date", value: result?.prescription_date ?? "" },
+    { label: "Diagnosis", value: result?.diagnosis ?? "" },
+  ];
+
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold">
-        AI Prescription Analyzer
-      </h1>
+      <h1 className="text-3xl font-bold">AI Prescription Analyzer</h1>
+      <p className="-mt-4 text-muted-foreground">
+        Upload a prescription to extract medicines, dosage, warnings, and more.
+      </p>
 
-      <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-8">
+      {error && <ErrorState message={error} onRetry={() => file && handleUpload(file)} />}
 
-        <div className="flex flex-col md:flex-row gap-4 items-center">
+      {/* Upload */}
+      <FileUploadCard
+        accept=".pdf,.png,.jpg,.jpeg"
+        label="Upload Prescription"
+        hint="Supported: PDF • PNG • JPG • JPEG"
+        onFile={handleUpload}
+        busy={loading}
+        busyLabel="Analyzing prescription…"
+      />
 
-          <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 border-2 border-dashed border-blue-400 rounded-lg px-6 py-4 font-medium text-muted-foreground transition">
-            📄 Choose Prescription
-
-            <input
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
-              className="hidden"
-              onChange={(e) =>
-                setFile(e.target.files?.[0] || null)
-              }
-            />
-          </label>
-
-          {file && (
-            <span className="text-muted-foreground font-medium">
-              {file.name}
-            </span>
-          )}
-
-          <button
-            onClick={handleUpload}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg disabled:opacity-50"
-          >
-            {loading ? "Analyzing..." : "Upload & Analyze"}
-          </button>
-
+      {/* Result */}
+      {loading && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
+      )}
 
-      </div>
+      {result && !loading && (
+        <div className="space-y-6">
+          {/* Meta */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {meta.map((m) => (
+              <div key={m.label} className="rounded-xl bg-card p-4 shadow ring-1 ring-foreground/10">
+                <p className="text-xs text-muted-foreground">{m.label}</p>
+                <p className="mt-1 font-medium">{m.value || "Not Available"}</p>
+              </div>
+            ))}
+          </div>
 
-      {result && (
-        <div className="space-y-8">
-
-          <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
-            <h2 className="text-2xl font-bold mb-6">
+          {/* Medicines table */}
+          <div className="overflow-x-auto rounded-xl bg-card shadow ring-1 ring-foreground/10">
+            <h3 className="flex items-center gap-2 border-b p-5 font-semibold">
+              <Pill className="h-5 w-5 text-blue-600" />
               Medicines
-            </h2>
-
-            <div className="overflow-x-auto">
-
-              <table className="w-full border">
-
-                <thead className="bg-blue-600 text-white">
-
-                  <tr>
-                    <th className="p-3 text-left">Medicine</th>
-                    <th className="p-3 text-left">Purpose</th>
-                    <th className="p-3 text-left">Dosage</th>
+            </h3>
+            <table className="w-full min-w-max">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="p-4 text-left" scope="col">Medicine</th>
+                  <th className="p-4 text-left" scope="col">Purpose</th>
+                  <th className="p-4 text-left" scope="col">Dosage</th>
+                  <th className="p-4 text-left" scope="col">Frequency</th>
+                  <th className="p-4 text-left" scope="col">Duration</th>
+                  <th className="p-4 text-left" scope="col">Instructions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(result.medicines ?? []).map((med, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="p-4 font-medium">{med}</td>
+                    <td className="p-4 text-sm">{result.purpose?.[i] ?? "Not Available"}</td>
+                    <td className="p-4 text-sm">{result.dosage?.[i] ?? "Not Available"}</td>
+                    <td className="p-4 text-sm">{result.frequency?.[i] ?? "Not Available"}</td>
+                    <td className="p-4 text-sm">{result.duration?.[i] ?? "Not Available"}</td>
+                    <td className="p-4 text-sm">{result.instructions?.[i] ?? "Not Available"}</td>
                   </tr>
-
-                </thead>
-
-                <tbody>
-
-                  {result.medicines.map((medicine, index) => (
-                    <tr
-                      key={index}
-                      className="border-b hover:bg-gray-50"
-                    >
-                      <td className="p-3 font-semibold">
-                        {medicine}
-                      </td>
-
-                      <td className="p-3">
-                        {result.purpose[index]}
-                      </td>
-
-                      <td className="p-3">
-                        {result.dosage[index]}
-                      </td>
-                    </tr>
-                  ))}
-
-                </tbody>
-
-              </table>
-
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="rounded-xl bg-card shadow ring-1 ring-foreground/10 p-6">
-
-            <h2 className="text-2xl font-bold mb-4">
-              Precautions
-            </h2>
-
-            <ul className="list-disc ml-6 space-y-2">
-
-              {result.precautions.map((item, index) => (
-                <li key={index}>
-                  {item}
-                </li>
-              ))}
-
-            </ul>
-
+          {/* Cards */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <ResultCard title="Warnings" icon={<AlertTriangle className="h-5 w-5 text-amber-500" />} items={result.warnings} />
+            <ResultCard title="Drug Interactions" icon={<ShieldAlert className="h-5 w-5 text-red-500" />} items={result.interactions} />
+            <ResultCard title="Side Effects" icon={<AlertTriangle className="h-5 w-5 text-orange-500" />} items={result.side_effects} />
+            <ResultCard title="Missed Dose" icon={<HeartPulse className="h-5 w-5 text-blue-500" />} items={result.missed_dose} />
+            <ResultCard title="Lifestyle" icon={<ListChecks className="h-5 w-5 text-emerald-500" />} items={result.lifestyle_recommendations} />
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-
-            <h2 className="text-2xl font-bold text-blue-700 mb-3">
-              Doctor&apos;s Advice
-            </h2>
-
-            <p className="text-muted-foreground leading-7">
-              {result.doctor_advice}
+          {/* Summary */}
+          <div className="rounded-xl bg-gradient-to-br from-blue-50 to-emerald-50 p-6 ring-1 ring-blue-200 dark:from-blue-950/20 dark:to-emerald-950/20 dark:ring-blue-800">
+            <h3 className="mb-2 flex items-center gap-2 font-semibold">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              Summary
+            </h3>
+            <p className="text-sm leading-7 text-muted-foreground">
+              {result.summary || "Not Available"}
             </p>
-
           </div>
 
+          {/* Actions */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={copyResult}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted"
+            >
+              <ClipboardCopy className="h-4 w-4" />
+              Copy Result
+            </button>
+            <button
+              onClick={downloadResult}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted"
+            >
+              <Download className="h-4 w-4" />
+              Download Report
+            </button>
+            <button
+              onClick={reset}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Analyze Another Prescription
+            </button>
+          </div>
         </div>
       )}
     </div>

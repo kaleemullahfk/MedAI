@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Upload, FileText, CheckCircle2, Loader2, Download, Trash2 } from "lucide-react";
+import {
+  FileText,
+  CheckCircle2,
+  Download,
+  Trash2,
+  ClipboardCopy,
+  AlertTriangle,
+  HeartPulse,
+  Activity,
+  ListChecks,
+  Utensils,
+  Sparkles,
+} from "lucide-react";
 
 import {
   uploadReport,
@@ -14,6 +26,40 @@ import {
   type ReportAnalysis,
 } from "@/services/report";
 import { toApiError } from "@/services/api";
+import { FileUploadCard } from "@/components/upload/FileUploadCard";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function SectionCard({
+  title,
+  icon,
+  items,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: string[] | undefined;
+}) {
+  return (
+    <div className="rounded-xl bg-card p-5 shadow ring-1 ring-foreground/10">
+      <h3 className="mb-3 flex items-center gap-2 font-semibold">{icon}{title}</h3>
+      {items && items.length > 0 ? (
+        <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
+          {items.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">None detected.</p>
+      )}
+    </div>
+  );
+}
+
+const riskColor: Record<string, string> = {
+  Low: "bg-green-100 text-green-700",
+  Moderate: "bg-amber-100 text-amber-700",
+  High: "bg-red-100 text-red-700",
+};
 
 export default function MedicalReportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -23,27 +69,33 @@ export default function MedicalReportPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     getMyReports()
-      .then(setReports)
-      .catch((err) => setError(toApiError(err).message));
+      .then((data) => {
+        if (!cancelled) setReports(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(toApiError(err).message);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleUpload = async () => {
-    if (!file) {
-      setError("Please select a report.");
-      return;
-    }
-
+  const handleUpload = async (f: File) => {
+    setFile(f);
+    setError(null);
+    setLoading(true);
+    setResult(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      const record = await uploadReport(file);
+      const record = await uploadReport(f);
       setResult(parseAnalysis(record.ai_analysis));
       setReports((prev) => [record, ...prev]);
       setFile(null);
+      toast.success("Report analyzed successfully.");
     } catch (err) {
       setError(toApiError(err).message);
+      toast.error(toApiError(err).message);
     } finally {
       setLoading(false);
     }
@@ -74,117 +126,107 @@ export default function MedicalReportPage() {
     }
   };
 
+  const copyResult = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      toast.success("Copied to clipboard.");
+    } catch {
+      toast.error("Could not copy.");
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">AI Medical Report Analyzer</h1>
+      <p className="-mt-4 text-muted-foreground">
+        Upload a report to get a structured medical summary with risk assessment.
+      </p>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
-          {error}
+      {error && <ErrorState message={error} onRetry={() => file && handleUpload(file)} />}
+
+      <FileUploadCard
+        accept=".pdf,.png,.jpg,.jpeg"
+        label="Upload Medical Report"
+        hint="Supported: PDF • PNG • JPG • JPEG"
+        onFile={handleUpload}
+        busy={loading}
+        busyLabel="Analyzing report…"
+      />
+
+      {loading && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       )}
 
-      {/* Upload Card */}
-      <div className="rounded-2xl bg-card p-8 shadow-lg ring-1 ring-foreground/10">
-        <label
-          htmlFor="report-upload"
-          className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-blue-300 p-10 transition-all duration-300 hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-        >
-          <Upload size={70} className="mb-5 text-blue-600" />
-          <h2 className="text-2xl font-bold text-foreground">
-            Upload Medical Report
-          </h2>
-          <p className="mt-2 text-center text-muted-foreground">
-            Drag &amp; Drop your report here
-          </p>
-          <p className="mt-1 text-muted-foreground">OR</p>
-          <span className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
-            Choose File
-          </span>
-          <p className="mt-5 text-sm text-muted-foreground">
-            Supported: PDF • PNG • JPG • JPEG
-          </p>
-
-          {file && (
-            <div className="mt-6 flex items-center gap-3 rounded-lg border border-green-300 bg-green-100 px-5 py-3 text-green-700">
-              <CheckCircle2 size={22} />
-              <span className="font-medium">{file.name}</span>
+      {result && !loading && (
+        <div className="space-y-6">
+          {/* Risk banner */}
+          {result.emergency_warning ? (
+            <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-5 dark:bg-red-950/30">
+              <AlertTriangle className="h-6 w-6 shrink-0 text-red-600" />
+              <div>
+                <p className="font-semibold text-red-700">Urgent attention needed</p>
+                <p className="text-sm text-red-600">{result.emergency_warning}</p>
+              </div>
             </div>
-          )}
-        </label>
-
-        <input
-          id="report-upload"
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          className="hidden"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
-
-        <button
-          onClick={handleUpload}
-          disabled={!file || loading}
-          className="mt-8 w-full rounded-xl bg-blue-600 py-4 text-lg font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-        >
-          {loading ? (
-            <span className="inline-flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Analyzing Report…
-            </span>
           ) : (
-            "Upload & Analyze"
-          )}
-        </button>
-      </div>
-
-      {/* AI Result */}
-      {result && (
-        <div className="space-y-8 rounded-2xl bg-card p-8 shadow-lg ring-1 ring-foreground/10">
-          <div>
-            <div className="mb-3 flex items-center gap-3">
-              <FileText className="text-blue-600" />
-              <h2 className="text-2xl font-bold">Summary</h2>
+            <div className="flex items-center gap-3 rounded-xl border border-green-300 bg-green-50 p-5 dark:bg-green-950/30">
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600" />
+              <p className="font-semibold text-green-700">No critical findings</p>
             </div>
-            <p className="leading-8 text-muted-foreground">
+          )}
+
+          {/* Summary + risk */}
+          <div className="rounded-xl bg-card p-6 shadow ring-1 ring-foreground/10">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-xl font-bold">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                Health Summary
+              </h2>
+              {result.risk_level && (
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${riskColor[result.risk_level] ?? "bg-gray-100 text-gray-700"}`}>
+                  Risk: {result.risk_level}
+                </span>
+              )}
+            </div>
+            <p className="leading-7 text-muted-foreground">
               {result.summary || "No summary available."}
             </p>
           </div>
 
-          <div>
-            <h2 className="mb-4 text-2xl font-bold">Abnormal Values</h2>
-            {!result.abnormal_values || result.abnormal_values.length === 0 ? (
-              <div className="flex items-center gap-3 rounded-xl border border-green-300 bg-green-100 p-5 text-green-700">
-                <CheckCircle2 size={28} />
-                <span className="font-medium">No abnormal values detected.</span>
-              </div>
-            ) : (
-              <ul className="ml-6 list-disc space-y-2">
-                {result.abnormal_values.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <SectionCard title="Abnormal Findings" icon={<AlertTriangle className="h-5 w-5 text-amber-500" />} items={result.abnormal_findings ?? result.abnormal_values} />
+            <SectionCard title="Possible Diseases" icon={<HeartPulse className="h-5 w-5 text-blue-500" />} items={result.possible_diseases} />
+            <SectionCard title="Recommendations" icon={<ListChecks className="h-5 w-5 text-emerald-500" />} items={result.recommendations} />
+            <SectionCard title="Lifestyle Advice" icon={<Utensils className="h-5 w-5 text-orange-500" />} items={result.lifestyle_advice} />
+            <SectionCard title="Exercise Advice" icon={<Activity className="h-5 w-5 text-violet-500" />} items={result.exercise_advice} />
           </div>
 
-          <div>
-            <h2 className="mb-4 text-2xl font-bold">Recommendations</h2>
-            {result.recommendations && result.recommendations.length > 0 ? (
-              <ul className="ml-6 list-disc space-y-3">
-                {result.recommendations.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground">No recommendations available.</p>
-            )}
+          {result.follow_up && (
+            <div className="rounded-xl bg-blue-50 p-5 ring-1 ring-blue-200 dark:bg-blue-950/20 dark:ring-blue-800">
+              <h3 className="mb-1 font-semibold">Follow-up</h3>
+              <p className="text-sm text-muted-foreground">{result.follow_up}</p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={copyResult}
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition hover:bg-muted"
+            >
+              <ClipboardCopy className="h-4 w-4" />
+              Copy Analysis
+            </button>
           </div>
         </div>
       )}
 
-      {/* Report history */}
+      {/* Previous reports */}
       {reports.length > 0 && (
         <div className="rounded-2xl bg-card p-8 shadow-lg ring-1 ring-foreground/10">
           <h2 className="mb-4 text-2xl font-bold">Previous Reports</h2>

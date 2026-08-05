@@ -15,7 +15,14 @@ export interface ReportAnalysis {
   summary?: string;
   findings?: string[];
   abnormal_values?: string[];
+  abnormal_findings?: string[];
+  possible_diseases?: string[];
+  risk_level?: "Low" | "Moderate" | "High";
   recommendations?: string[];
+  lifestyle_advice?: string[];
+  exercise_advice?: string[];
+  follow_up?: string;
+  emergency_warning?: string;
 }
 
 /** Parse the backend's ai_analysis JSON string into an object. */
