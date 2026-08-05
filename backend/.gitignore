@@ -19,3 +19,4 @@ alembic/versions/*.pyc
 
 # Test / tooling caches
 .pytest_cache/
+.test-uploads/
