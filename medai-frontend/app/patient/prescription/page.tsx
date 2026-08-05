@@ -81,7 +81,6 @@ export default function PrescriptionAnalyzerPage() {
       setResult(data);
       toast.success("Prescription analyzed successfully.");
     } catch (err) {
-      console.error(err);
       setError(toApiError(err).message);
       toast.error(toApiError(err).message);
     } finally {
