@@ -36,12 +36,26 @@ def book_appointment(
             detail="Cannot book an appointment for a past date."
         )
 
-    # Validation 2: Ensure target user exists, is a doctor, and is active
+    # Validation 2: Ensure target user exists, is a doctor, and is active.
+    # The client may send either the user id or the doctor-profile id (the
+    # directory exposes profiles whose `id` differs from the user id), so
+    # resolve through both to be robust.
     doctor = db.query(User).filter(
         User.id == appointment.doctor_id,
         User.role == "doctor",
         User.is_active == True  # noqa: E712
     ).first()
+
+    if not doctor:
+        profile = db.query(DoctorProfile).filter(
+            DoctorProfile.id == appointment.doctor_id
+        ).first()
+        if profile:
+            doctor = db.query(User).filter(
+                User.id == profile.user_id,
+                User.role == "doctor",
+                User.is_active == True  # noqa: E712
+            ).first()
 
     if not doctor:
         raise HTTPException(

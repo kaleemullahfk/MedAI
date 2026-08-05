@@ -96,8 +96,11 @@ export default function BookAppointment() {
               {loadingDoctors ? "Loading doctors…" : "Select a doctor"}
             </option>
             {doctors.map((doctor) => (
-              <option key={doctor.id} value={doctor.id}>
-                {doctor.user?.full_name ?? `Doctor #${doctor.id}`} —{" "}
+              // The backend book_appointment looks up doctors by User.id, and
+              // the directory returns DoctorProfile records (whose `id` differs
+              // from the user id). Send user_id so the lookup succeeds.
+              <option key={doctor.user_id} value={doctor.user_id}>
+                {doctor.user?.full_name ?? `Doctor #${doctor.user_id}`} —{" "}
                 {doctor.specialization} ({doctor.hospital})
               </option>
             ))}
