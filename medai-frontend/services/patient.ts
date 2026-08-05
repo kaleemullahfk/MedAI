@@ -16,7 +16,7 @@ export const bookAppointment = async (data: {
   reason: string;
 }) => {
   try {
-    const response = await api.post("/appointment/", data);
+    const response = await api.post("/appointment", data);
     return response.data;
   } catch (error) {
     throw toApiError(error);
