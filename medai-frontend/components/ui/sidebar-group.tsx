@@ -22,10 +22,14 @@ interface SidebarGroupProps {
 }
 
 /**
- * A collapsible sidebar section. It opens automatically whenever a child
- * route is active; otherwise the user can toggle it with a smooth animation.
- * `userClosed` tracks an explicit user collapse so it stays collapsed even
- * while a child is not active.
+ * A collapsible sidebar section with a smooth expand/collapse animation.
+ *
+ * Behavior:
+ * - The user can toggle it open/closed at any time.
+ * - When a child route is active the section is always shown open, so the
+ *   current page stays visible even if the group is collapsed elsewhere.
+ * - The open state resets when the active child changes, so expanding a group
+ *   on one page doesn't leave it stuck open on another.
  */
 export function SidebarGroup({
   label,
@@ -38,16 +42,31 @@ export function SidebarGroup({
   const anyActive = items.some(
     (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
   );
-  const [userClosed, setUserClosed] = useState(false);
 
-  // Derive the open state: a child being active overrides a manual collapse.
-  const open = anyActive || (defaultOpen && !userClosed);
+  // `openKey` is the id of the currently-active child, or "none" (which is
+  // "none" for every inactive route). We key the toggle state by it so the
+  // group auto-opens for the active child and resets elsewhere.
+  const openKey = items.find(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
+  )?.href ?? "none";
+
+  const [isOpen, setIsOpen] = useState(defaultOpen || openKey !== "none");
+
+  // When the active child changes, sync the toggle state: open for the active
+  // child, otherwise keep the user's previous choice only if nothing is active.
+  const [lastKey, setLastKey] = useState(openKey);
+  if (lastKey !== openKey) {
+    setLastKey(openKey);
+    setIsOpen(openKey !== "none" || defaultOpen);
+  }
+
+  const open = anyActive || isOpen;
 
   return (
     <div>
       <button
         type="button"
-        onClick={() => setUserClosed((v) => !v)}
+        onClick={() => setIsOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
           "flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition-colors",
