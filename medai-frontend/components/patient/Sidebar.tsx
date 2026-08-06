@@ -14,6 +14,7 @@ import {
   BookOpen,
   Pill,
   FileHeart,
+  FileText as FileTextIcon,
   HeartPulse,
   X,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const menu = [
   { name: "Profile", href: "/patient/profile", icon: User },
   { name: "AI Medicine", href: "/patient/medicine-recommendation", icon: Pill },
   { name: "Disease Explanation", href: "/patient/disease-explanation", icon: BookOpen },
+  { name: "My Prescriptions", href: "/patient/my-prescriptions", icon: FileTextIcon },
   { name: "Prescription Analyzer", href: "/patient/prescription", icon: FileHeart },
 ];
 
