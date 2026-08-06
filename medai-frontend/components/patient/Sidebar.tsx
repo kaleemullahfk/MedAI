@@ -16,24 +16,18 @@ import {
   FileHeart,
   FileText as FileTextIcon,
   HeartPulse,
+  Brain,
   X,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { SidebarGroup, type SidebarItem } from "@/components/ui/sidebar-group";
 
-const menu = [
-  { name: "Dashboard", href: "/patient", icon: LayoutDashboard },
-  { name: "Book Appointment", href: "/patient/book", icon: CalendarPlus },
-  { name: "My Appointments", href: "/patient/appointments", icon: CalendarDays },
+const aiTools: SidebarItem[] = [
   { name: "AI Symptom Checker", href: "/patient/symptom-checker", icon: Activity },
-  { name: "Medical Reports", href: "/patient/reports", icon: FileText },
-  { name: "AI Chatbot", href: "/patient/chatbot", icon: Bot },
-  { name: "Profile", href: "/patient/profile", icon: User },
-  { name: "AI Medicine", href: "/patient/medicine-recommendation", icon: Pill },
-  { name: "Disease Explanation", href: "/patient/disease-explanation", icon: BookOpen },
-  { name: "My Prescriptions", href: "/patient/my-prescriptions", icon: FileTextIcon },
-  { name: "Prescription Analyzer", href: "/patient/prescription", icon: FileHeart },
+  { name: "AI Medicine Recommendation", href: "/patient/medicine-recommendation", icon: Pill },
+  { name: "AI Disease Explanation", href: "/patient/disease-explanation", icon: BookOpen },
 ];
 
 export default function PatientSidebar({
@@ -77,26 +71,117 @@ export default function PatientSidebar({
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {menu.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white",
-                )}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                {item.name}
-              </Link>
-            );
-          })}
+          {/* Dashboard */}
+          <Link
+            href="/patient"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname === "/patient"
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <LayoutDashboard className="h-5 w-5 shrink-0" />
+            Dashboard
+          </Link>
+
+          {/* Appointments group */}
+          <SidebarGroup
+            label="Appointments"
+            icon={CalendarDays}
+            pathname={pathname}
+            onNavigate={onClose}
+            defaultOpen={pathname.startsWith("/patient/book") || pathname.startsWith("/patient/appointments")}
+            items={[
+              { name: "Book Appointment", href: "/patient/book", icon: CalendarPlus },
+              { name: "My Appointments", href: "/patient/appointments", icon: CalendarDays },
+            ]}
+          />
+
+          {/* AI Health Assistant collapsible */}
+          <SidebarGroup
+            label="AI Health Assistant"
+            icon={Brain}
+            pathname={pathname}
+            onNavigate={onClose}
+            items={aiTools}
+          />
+
+          {/* Medical Reports */}
+          <Link
+            href="/patient/reports"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/reports")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <FileText className="h-5 w-5 shrink-0" />
+            Medical Reports
+          </Link>
+
+          {/* My Prescriptions */}
+          <Link
+            href="/patient/my-prescriptions"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/my-prescriptions")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <FileTextIcon className="h-5 w-5 shrink-0" />
+            My Prescriptions
+          </Link>
+
+          {/* Prescription Analyzer */}
+          <Link
+            href="/patient/prescription"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/prescription")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <FileHeart className="h-5 w-5 shrink-0" />
+            Prescription Analyzer
+          </Link>
+
+          {/* AI Chatbot */}
+          <Link
+            href="/patient/chatbot"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/chatbot")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <Bot className="h-5 w-5 shrink-0" />
+            AI Chatbot
+          </Link>
+
+          {/* Profile */}
+          <Link
+            href="/patient/profile"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/profile")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <User className="h-5 w-5 shrink-0" />
+            Profile
+          </Link>
         </nav>
 
         <div className="border-t border-slate-800 p-4">

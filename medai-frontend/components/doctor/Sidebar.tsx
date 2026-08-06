@@ -22,8 +22,8 @@ const menus = [
   { name: "Dashboard", href: "/doctor", icon: LayoutDashboard },
   { name: "Appointments", href: "/doctor/appointments", icon: CalendarDays },
   { name: "Patients", href: "/doctor/patients", icon: Users },
-  { name: "AI Prescription", href: "/doctor/prescription", icon: Stethoscope },
   { name: "Medical Reports", href: "/doctor/reports", icon: FileText },
+  { name: "AI Prescription", href: "/doctor/prescription", icon: Stethoscope },
   { name: "AI Chatbot", href: "/doctor/chatbot", icon: MessageCircle },
   { name: "Profile", href: "/doctor/profile", icon: User },
 ];
