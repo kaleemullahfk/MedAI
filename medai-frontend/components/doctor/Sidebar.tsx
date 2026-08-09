@@ -10,6 +10,7 @@ import {
   Stethoscope,
   MessageCircle,
   User,
+  Info,
   LogOut,
   X,
   Stethoscope as LogoIcon,
@@ -26,6 +27,7 @@ const menus = [
   { name: "AI Prescription", href: "/doctor/prescription", icon: Stethoscope },
   { name: "AI Chatbot", href: "/doctor/chatbot", icon: MessageCircle },
   { name: "Profile", href: "/doctor/profile", icon: User },
+  { name: "About", href: "/doctor/about", icon: Info },
 ];
 
 export default function DoctorSidebar({

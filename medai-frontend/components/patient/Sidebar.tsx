@@ -9,6 +9,7 @@ import {
   FileText,
   Bot,
   User,
+  Info,
   LogOut,
   Activity,
   BookOpen,
@@ -181,6 +182,21 @@ export default function PatientSidebar({
           >
             <User className="h-5 w-5 shrink-0" />
             Profile
+          </Link>
+
+          {/* About */}
+          <Link
+            href="/patient/about"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+              pathname.startsWith("/patient/about")
+                ? "bg-blue-600 text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            )}
+          >
+            <Info className="h-5 w-5 shrink-0" />
+            About
           </Link>
         </nav>
 

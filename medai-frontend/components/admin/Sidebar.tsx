@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, LogOut, X, ShieldCheck, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, X, ShieldCheck, BarChart3, Info } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const menu = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { name: "About", href: "/admin/about", icon: Info },
 ];
 
 export default function AdminSidebar({
