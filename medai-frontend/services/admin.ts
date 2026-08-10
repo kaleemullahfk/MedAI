@@ -72,27 +72,104 @@ export const resetUserPassword = async (
   }
 };
 
-export interface AnalyticsSeriesPoint {
+export interface RangeInfo {
+  start: string;
+  end: string;
+  days: number;
+}
+
+export interface OverviewStats {
+  total_patients: number;
+  total_doctors: number;
+  total_appointments: number;
+  today_appointments: number;
+  pending_appointments: number;
+  completed_appointments: number;
+  cancelled_appointments: number;
+  total_reports: number;
+  total_prescriptions: number;
+  total_ai_analyses: number;
+  total_ai_prescriptions: number;
+  active_users_today: number;
+  growth: {
+    appointments: number;
+    patients: number;
+    reports: number;
+  };
+}
+
+export interface DailyPoint {
   date: string;
-  new_users: number;
-  appointments: number;
-  reports: number;
-  prescriptions: number;
-  chats: number;
+  count: number;
+}
+
+export interface AppointmentAnalytics {
+  daily: DailyPoint[];
+  monthly: { month: string; count: number }[];
+  status: { label: string; count: number }[];
+  by_doctor: { doctor: string; count: number }[];
+  peak_hours: { hour: string; count: number }[];
+  upcoming: number;
+}
+
+export interface AiAnalytics {
+  total_analyses: number;
+  total_prescriptions: number;
+  most_diseases: { label: string; count: number }[];
+  most_symptoms: { label: string; count: number }[];
+  most_medicines: { label: string; count: number }[];
+  risk_distribution: { label: string; count: number }[];
+  usage_growth: DailyPoint[];
+}
+
+export interface ReportsAnalytics {
+  today: number;
+  monthly_uploads: number;
+  categories: { label: string; count: number }[];
+  normal_vs_abnormal: Record<string, number>;
+  avg_per_patient: number;
+}
+
+export interface PrescriptionsAnalytics {
+  total: number;
+  draft: number;
+  approved: number;
+  rejected: number;
+  most_diagnoses: { label: string; count: number }[];
+  most_medicines: { label: string; count: number }[];
+}
+
+export interface Insight {
+  type: string;
+  label: string;
+  value: string;
+}
+
+export interface RecentActivity {
+  type: string;
+  action: string;
+  name: string;
+  time: string;
 }
 
 export interface AnalyticsResponse {
-  days: number;
-  totals: {
-    doctors: number;
-    patients: number;
-    admins: number;
-    appointments: number;
-    reports: number;
-    prescriptions: number;
-    chats: number;
+  range: RangeInfo;
+  overview: OverviewStats;
+  appointments: AppointmentAnalytics;
+  ai: AiAnalytics;
+  reports: ReportsAnalytics;
+  prescriptions: PrescriptionsAnalytics;
+  doctors: {
+    total: number;
+    most_active: { doctor: string; appointments: number; patients_treated: number; prescriptions: number }[];
   };
-  series: AnalyticsSeriesPoint[];
+  patients: {
+    total: number;
+    new_in_range: number;
+    most_active: { patient: string; appointments: number; reports: number }[];
+  };
+  insights: Insight[];
+  recent_activity: RecentActivity[];
 }
 
 export const getAdminAnalytics = async (days = 30): Promise<AnalyticsResponse> => {
