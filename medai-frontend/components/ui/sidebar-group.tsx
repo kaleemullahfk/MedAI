@@ -69,10 +69,10 @@ export function SidebarGroup({
         onClick={() => setIsOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
-          "flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+          "flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors",
           anyActive
-            ? "text-white"
-            : "text-slate-300 hover:bg-slate-800 hover:text-white",
+            ? "text-sidebar-foreground"
+            : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
         )}
       >
         <span className="flex items-center gap-3">
@@ -81,7 +81,7 @@ export function SidebarGroup({
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200",
+            "h-4 w-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-200",
             open && "rotate-180",
           )}
         />
@@ -94,7 +94,7 @@ export function SidebarGroup({
         )}
       >
         <div className="min-h-0">
-          <div className="ml-4 space-y-1 border-l border-slate-700/60 py-1 pl-3">
+          <div className="ml-5 space-y-1 border-l border-sidebar-border py-1 pl-3">
             {items.map((item) => {
               const ItemIcon = item.icon;
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -106,8 +106,8 @@ export function SidebarGroup({
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     active
-                      ? "bg-blue-600/30 text-white"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white",
+                      ? "bg-sidebar-primary/25 text-sidebar-foreground"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
                 >
                   <ItemIcon className="h-4 w-4 shrink-0" />

@@ -10,20 +10,16 @@ import {
   Bot,
   User,
   Info,
-  LogOut,
   Activity,
   BookOpen,
   Pill,
   FileHeart,
   FileText as FileTextIcon,
-  HeartPulse,
   Brain,
-  X,
 } from "lucide-react";
 
-import { useAuth } from "@/hooks/useAuth";
-import { cn } from "@/lib/utils";
 import { SidebarGroup, type SidebarItem } from "@/components/ui/sidebar-group";
+import { SidebarFrame, navLinkClass } from "@/components/app/sidebar-frame";
 
 const aiTools: SidebarItem[] = [
   { name: "AI Symptom Checker", href: "/patient/symptom-checker", icon: Activity },
@@ -39,177 +35,63 @@ export default function PatientSidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const { logout } = useAuth();
 
   return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
+    <SidebarFrame open={open} onClose={onClose}>
+      <Link href="/patient" onClick={onClose} className={navLinkClass(pathname === "/patient")}>
+        <LayoutDashboard className="h-5 w-5 shrink-0" />
+        Dashboard
+      </Link>
 
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-slate-900 text-white transition-transform lg:static lg:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
-          <span className="flex items-center gap-2 text-2xl font-bold">
-            <HeartPulse className="h-7 w-7 text-blue-400" />
-            MEDAI
-          </span>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 hover:bg-slate-800 lg:hidden"
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+      <SidebarGroup
+        label="Appointments"
+        icon={CalendarDays}
+        pathname={pathname}
+        onNavigate={onClose}
+        defaultOpen={pathname.startsWith("/patient/book") || pathname.startsWith("/patient/appointments")}
+        items={[
+          { name: "Book Appointment", href: "/patient/book", icon: CalendarPlus },
+          { name: "My Appointments", href: "/patient/appointments", icon: CalendarDays },
+        ]}
+      />
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {/* Dashboard */}
-          <Link
-            href="/patient"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname === "/patient"
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <LayoutDashboard className="h-5 w-5 shrink-0" />
-            Dashboard
-          </Link>
+      <SidebarGroup
+        label="AI Health Assistant"
+        icon={Brain}
+        pathname={pathname}
+        onNavigate={onClose}
+        items={aiTools}
+      />
 
-          {/* Appointments group */}
-          <SidebarGroup
-            label="Appointments"
-            icon={CalendarDays}
-            pathname={pathname}
-            onNavigate={onClose}
-            defaultOpen={pathname.startsWith("/patient/book") || pathname.startsWith("/patient/appointments")}
-            items={[
-              { name: "Book Appointment", href: "/patient/book", icon: CalendarPlus },
-              { name: "My Appointments", href: "/patient/appointments", icon: CalendarDays },
-            ]}
-          />
+      <Link href="/patient/reports" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/reports"))}>
+        <FileText className="h-5 w-5 shrink-0" />
+        Medical Reports
+      </Link>
 
-          {/* AI Health Assistant collapsible */}
-          <SidebarGroup
-            label="AI Health Assistant"
-            icon={Brain}
-            pathname={pathname}
-            onNavigate={onClose}
-            items={aiTools}
-          />
+      <Link href="/patient/my-prescriptions" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/my-prescriptions"))}>
+        <FileTextIcon className="h-5 w-5 shrink-0" />
+        My Prescriptions
+      </Link>
 
-          {/* Medical Reports */}
-          <Link
-            href="/patient/reports"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/reports")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <FileText className="h-5 w-5 shrink-0" />
-            Medical Reports
-          </Link>
+      <Link href="/patient/prescription" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/prescription"))}>
+        <FileHeart className="h-5 w-5 shrink-0" />
+        Prescription Analyzer
+      </Link>
 
-          {/* My Prescriptions */}
-          <Link
-            href="/patient/my-prescriptions"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/my-prescriptions")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <FileTextIcon className="h-5 w-5 shrink-0" />
-            My Prescriptions
-          </Link>
+      <Link href="/patient/chatbot" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/chatbot"))}>
+        <Bot className="h-5 w-5 shrink-0" />
+        AI Chatbot
+      </Link>
 
-          {/* Prescription Analyzer */}
-          <Link
-            href="/patient/prescription"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/prescription")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <FileHeart className="h-5 w-5 shrink-0" />
-            Prescription Analyzer
-          </Link>
+      <Link href="/patient/profile" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/profile"))}>
+        <User className="h-5 w-5 shrink-0" />
+        Profile
+      </Link>
 
-          {/* AI Chatbot */}
-          <Link
-            href="/patient/chatbot"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/chatbot")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <Bot className="h-5 w-5 shrink-0" />
-            AI Chatbot
-          </Link>
-
-          {/* Profile */}
-          <Link
-            href="/patient/profile"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/profile")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <User className="h-5 w-5 shrink-0" />
-            Profile
-          </Link>
-
-          {/* About */}
-          <Link
-            href="/patient/about"
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
-              pathname.startsWith("/patient/about")
-                ? "bg-blue-600 text-white"
-                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-            )}
-          >
-            <Info className="h-5 w-5 shrink-0" />
-            About
-          </Link>
-        </nav>
-
-        <div className="border-t border-slate-800 p-4">
-          <button
-            onClick={() => logout()}
-            className="flex w-full items-center justify-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium transition hover:bg-red-700"
-          >
-            <LogOut className="h-5 w-5" />
-            Logout
-          </button>
-        </div>
-      </aside>
-    </>
+      <Link href="/patient/about" onClick={onClose} className={navLinkClass(pathname.startsWith("/patient/about"))}>
+        <Info className="h-5 w-5 shrink-0" />
+        About
+      </Link>
+    </SidebarFrame>
   );
 }
