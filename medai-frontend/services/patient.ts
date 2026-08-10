@@ -1,5 +1,17 @@
 import api, { toApiError } from "./api";
 
+export interface Appointment {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  appointment_date: string;
+  appointment_time: string;
+  reason: string;
+  status: string;
+  doctor?: { id: number; full_name: string; email: string } | null;
+  patient?: { id: number; full_name: string; email: string } | null;
+}
+
 export const getPatientDashboard = async () => {
   try {
     const response = await api.get("/dashboard/patient");
@@ -23,10 +35,10 @@ export const bookAppointment = async (data: {
   }
 };
 
-export const getMyAppointments = async () => {
+export const getMyAppointments = async (): Promise<Appointment[]> => {
   try {
     const response = await api.get("/appointment/my");
-    return response.data;
+    return response.data as Appointment[];
   } catch (error) {
     throw toApiError(error);
   }

@@ -41,13 +41,42 @@ export interface PrescriptionRecord {
   report_title?: string | null;
 }
 
+const EMPTY_MED: MedicineItem = {
+  medicine: "",
+  strength: "",
+  dosage: "",
+  frequency: "",
+  duration: "",
+  route: "",
+  instructions: "",
+};
+
+/**
+ * Parse a raw medicines JSON into normalized MedicineItem rows.
+ * Every item is filled with all 7 fields (missing ones become "") so the
+ * controlled <Input value={...}> components never receive `undefined`
+ * (which forces React to reclassify them as uncontrolled). Returns one empty
+ * row when the payload is empty so the form always has a row to edit.
+ */
 export function parseMedicines(raw: string | null): MedicineItem[] {
-  if (!raw) return [];
+  if (!raw) return [{ ...EMPTY_MED }];
   try {
     const d = JSON.parse(raw);
-    return Array.isArray(d) ? d : [];
+    if (!Array.isArray(d)) return [{ ...EMPTY_MED }];
+    const rows = d
+      .filter((m): m is Record<string, unknown> => !!m && typeof m === "object")
+      .map((m) => ({
+        medicine: String(m.medicine ?? ""),
+        strength: String(m.strength ?? ""),
+        dosage: String(m.dosage ?? ""),
+        frequency: String(m.frequency ?? ""),
+        duration: String(m.duration ?? ""),
+        route: String(m.route ?? ""),
+        instructions: String(m.instructions ?? ""),
+      }));
+    return rows.length ? rows : [{ ...EMPTY_MED }];
   } catch {
-    return [];
+    return [{ ...EMPTY_MED }];
   }
 }
 
