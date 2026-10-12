@@ -1,7 +1,19 @@
+from datetime import date, timedelta
+
 from conftest import login, auth_headers, conn
 from app.services.schedule import normalize_time, slot_in_window
 from app.models.doctor_profile import DoctorProfile
 import pytest
+
+
+def _future_date(days: int = 30) -> str:
+    """An ISO date safely in the future.
+
+    The booking route rejects past dates, so date-dependent tests must compute
+    the date at run time instead of hardcoding it — otherwise the suite goes
+    red the moment the fixed date rolls into the past.
+    """
+    return (date.today() + timedelta(days=days)).isoformat()
 
 
 # --- schedule helpers ---
@@ -65,23 +77,26 @@ def test_appointment_bad_time_rejected(client, seeded_users):
 
 
 def test_appointment_outside_doctor_window(client, seeded_users):
-    # Doctor has default available_time 09:00 AM - 05:00 PM.
+    # Doctor has default available_time 09:00 AM - 05:00 PM. 18:00 is outside
+    # that window, so this 400 comes from the availability check (using a
+    # future date so the earlier past-date guard can't mask it).
     token = login(client, "patient@test.dev", "strongpass1")
     doctor_id = seeded_users["doctor_id"]
 
-    res = _book(client, token, doctor_id, "2026-08-20", "18:00")
+    res = _book(client, token, doctor_id, _future_date(), "18:00")
     assert res.status_code == 400
 
 
 def test_appointment_booking_and_double_book(client, seeded_users):
     token = login(client, "patient@test.dev", "strongpass1")
     doctor_id = seeded_users["doctor_id"]
+    day = _future_date()
 
-    res = _book(client, token, doctor_id, "2026-08-20", "10:00")
+    res = _book(client, token, doctor_id, day, "10:00")
     assert res.status_code == 201
 
     # Same normalized slot via "10:00 am" must be rejected as duplicate.
-    res2 = _book(client, token, doctor_id, "2026-08-20", "10:00 am")
+    res2 = _book(client, token, doctor_id, day, "10:00 am")
     assert res2.status_code == 400
 
 
