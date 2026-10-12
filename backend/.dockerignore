@@ -1,0 +1,23 @@
+# Keep secrets and local state out of the image (the host supplies env vars).
+.env
+*.db
+*.sqlite3
+
+# Local virtualenvs / caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.test-uploads/
+
+# Uploaded files are ephemeral on Render's free disk; don't ship the local ones.
+uploads/
+
+# Tests aren't needed in the production image.
+tests/
+
+# Ignore Windows/OS noise
+.git/
+.gitignore
+Thumbs.db
